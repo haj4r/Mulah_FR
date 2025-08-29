@@ -59,104 +59,115 @@
     </div>
   </div>
 
-   <script>
-    let foods = [];
-    let currentId = 1;
-    let editingId = null;
-    let deletingId = null;
+<script>
+  let foods = JSON.parse(localStorage.getItem("foods")) || [];
+  let currentId = foods.length ? Math.max(...foods.map(f => f.id)) + 1 : 1;
+  let editingId = null;
+  let deletingId = null;
 
-    // Load random meals
-    async function loadGallery() {
-      const gallery = document.getElementById("gallery");
-      gallery.innerHTML = "<p style='grid-column: 1 / -1; text-align:center;'>Loading meals...</p>";
-      gallery.innerHTML = "";
-      for (let i = 0; i < 24; i++) {
-        const res = await fetch("https://www.themealdb.com/api/json/v1/1/random.php");
-        const data = await res.json();
-        const meal = data.meals[0];
-        const card = document.createElement("div");
-        card.className = "meal-card";
-        card.innerHTML = `
-          <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
-          <p>${meal.strMeal}</p>
-        `;
-        gallery.appendChild(card);
-      }
+  // Save foods to localStorage
+  function saveToStorage() {
+    localStorage.setItem("foods", JSON.stringify(foods));
+  }
+
+  // Load random meals for gallery
+  async function loadGallery() {
+    const gallery = document.getElementById("gallery");
+    gallery.innerHTML = "<p style='grid-column: 1 / -1; text-align:center;'>Loading meals...</p>";
+    gallery.innerHTML = "";
+    for (let i = 0; i < 24; i++) {
+      const res = await fetch("https://www.themealdb.com/api/json/v1/1/random.php");
+      const data = await res.json();
+      const meal = data.meals[0];
+      const card = document.createElement("div");
+      card.className = "meal-card";
+      card.innerHTML = `
+        <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+        <p>${meal.strMeal}</p>
+      `;
+      gallery.appendChild(card);
     }
+  }
 
-    function renderTable() {
-      const tbody = document.getElementById("foodTableBody");
-      tbody.innerHTML = "";
-      foods.forEach(food => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${food.id}</td>
-          <td>${food.name}</td>
-          <td>
-            <button class="btn edit" onclick='openEditModal(${food.id})'>Edit</button>
-            <button class="btn red" onclick="openDeleteModal(${food.id})">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+  // Render food table
+  function renderTable() {
+    const tbody = document.getElementById("foodTableBody");
+    tbody.innerHTML = "";
+    foods.forEach(food => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${food.id}</td>
+        <td>${food.name}</td>
+        <td>
+          <button class="btn edit" onclick='openEditModal(${food.id})'>Edit</button>
+          <button class="btn red" onclick="openDeleteModal(${food.id})">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
 
-    function addFood() {
-      const input = document.getElementById("foodInput");
-      const name = input.value.trim();
-      if (name) {
-        foods.push({ id: currentId++, name });
-        input.value = "";
-        renderTable();
-      }
-    }
-
-    // --- Edit Modal ---
-    function openEditModal(id) {
-      editingId = id;
-      const food = foods.find(f => f.id === id);
-      document.getElementById("editFoodInput").value = food.name;
-      document.getElementById("editModal").style.display = "flex";
-    }
-
-    function saveFood() {
-      const newName = document.getElementById("editFoodInput").value.trim();
-      if (newName && editingId !== null) {
-        foods = foods.map(food => 
-          food.id === editingId ? { ...food, name: newName } : food
-        );
-        editingId = null;
-        closeModal("editModal");
-        renderTable();
-      }
-    }
-
-    // --- Delete Modal ---
-    function openDeleteModal(id) {
-      deletingId = id;
-      document.getElementById("deleteModal").style.display = "flex";
-    }
-
-    function confirmDelete() {
-      if (deletingId !== null) {
-        foods = foods.filter(food => food.id !== deletingId);
-        deletingId = null;
-        closeModal("deleteModal");
-        renderTable();
-      }
-    }
-
-    // Close modal
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-
-    // Load on start
-    window.onload = () => {
-      loadGallery();
+  // Add food
+  function addFood() {
+    const input = document.getElementById("foodInput");
+    const name = input.value.trim();
+    if (name) {
+      foods.push({ id: currentId++, name });
+      input.value = "";
+      saveToStorage();
       renderTable();
-    };
-  </script>
+    }
+  }
+
+  // --- Edit Modal ---
+  function openEditModal(id) {
+    editingId = id;
+    const food = foods.find(f => f.id === id);
+    document.getElementById("editFoodInput").value = food.name;
+    document.getElementById("editModal").style.display = "flex";
+  }
+
+  function saveFood() {
+    const newName = document.getElementById("editFoodInput").value.trim();
+    if (newName && editingId !== null) {
+      foods = foods.map(food => 
+        food.id === editingId ? { ...food, name: newName } : food
+      );
+      saveToStorage();
+      editingId = null;
+      closeModal("editModal");
+      renderTable();
+    }
+  }
+
+  // --- Delete Modal ---
+  function openDeleteModal(id) {
+    deletingId = id;
+    document.getElementById("deleteModal").style.display = "flex";
+  }
+
+  function confirmDelete() {
+    if (deletingId !== null) {
+      foods = foods.filter(food => food.id !== deletingId);
+      saveToStorage();
+      deletingId = null;
+      closeModal("deleteModal");
+      renderTable();
+    }
+  }
+
+  // Close modal
+  function closeModal(id) {
+    document.getElementById(id).style.display = "none";
+  }
+
+  // Load on start
+  window.onload = () => {
+    loadGallery();
+    renderTable();
+  };
+</script>
+
 </body>
 
 </html>
