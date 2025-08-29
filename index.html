@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Food List CRUD + Gallery</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <h1>Food List CRUD</h1>
+
+  <!-- Gallery -->
+  <h2>Meals Gallery</h2>
+  <div id="gallery"></div>
+  <button onclick="loadGallery()"> Reload Meals</button>
+
+  <!-- Input Card -->
+  <div class="input-card">
+    <h2>Add Food</h2>
+    <input type="text" id="foodInput" placeholder="Enter food name">
+    <button onclick="addFood()">➕ Add</button>
+  </div>
+
+  <!-- Table -->
+  <h2>Food Table</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Food Name</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="foodTableBody"></tbody>
+  </table>
+
+<!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Food</h2>
+      <input type="text" id="editFoodInput">
+      <div class="modal-actions">
+        <button onclick="saveFood()">Save</button>
+        <button onclick="closeModal('editModal')"> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <h2>Confirm Delete</h2>
+      <p>Are you sure you want to delete this food?</p>
+      <div class="modal-actions">
+        <button class="btn red" onclick="confirmDelete()">Delete</button>
+        <button onclick="closeModal('deleteModal')"> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+   <script>
+    let foods = [];
+    let currentId = 1;
+    let editingId = null;
+    let deletingId = null;
+
+    // Load random meals
+    async function loadGallery() {
+      const gallery = document.getElementById("gallery");
+      gallery.innerHTML = "<p style='grid-column: 1 / -1; text-align:center;'>Loading meals...</p>";
+      gallery.innerHTML = "";
+      for (let i = 0; i < 24; i++) {
+        const res = await fetch("https://www.themealdb.com/api/json/v1/1/random.php");
+        const data = await res.json();
+        const meal = data.meals[0];
+        const card = document.createElement("div");
+        card.className = "meal-card";
+        card.innerHTML = `
+          <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+          <p>${meal.strMeal}</p>
+        `;
+        gallery.appendChild(card);
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("foodTableBody");
+      tbody.innerHTML = "";
+      foods.forEach(food => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${food.id}</td>
+          <td>${food.name}</td>
+          <td>
+            <button class="btn edit" onclick='openEditModal(${food.id})'>Edit</button>
+            <button class="btn red" onclick="openDeleteModal(${food.id})">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function addFood() {
+      const input = document.getElementById("foodInput");
+      const name = input.value.trim();
+      if (name) {
+        foods.push({ id: currentId++, name });
+        input.value = "";
+        renderTable();
+      }
+    }
+
+    // --- Edit Modal ---
+    function openEditModal(id) {
+      editingId = id;
+      const food = foods.find(f => f.id === id);
+      document.getElementById("editFoodInput").value = food.name;
+      document.getElementById("editModal").style.display = "flex";
+    }
+
+    function saveFood() {
+      const newName = document.getElementById("editFoodInput").value.trim();
+      if (newName && editingId !== null) {
+        foods = foods.map(food => 
+          food.id === editingId ? { ...food, name: newName } : food
+        );
+        editingId = null;
+        closeModal("editModal");
+        renderTable();
+      }
+    }
+
+    // --- Delete Modal ---
+    function openDeleteModal(id) {
+      deletingId = id;
+      document.getElementById("deleteModal").style.display = "flex";
+    }
+
+    function confirmDelete() {
+      if (deletingId !== null) {
+        foods = foods.filter(food => food.id !== deletingId);
+        deletingId = null;
+        closeModal("deleteModal");
+        renderTable();
+      }
+    }
+
+    // Close modal
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    // Load on start
+    window.onload = () => {
+      loadGallery();
+      renderTable();
+    };
+  </script>
+</body>
+
+</html>
